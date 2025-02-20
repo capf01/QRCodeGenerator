@@ -1,0 +1,55 @@
+{
+  "name": "qr-code-generator",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "upgrade": "npm install -g @vue/cli && vue upgrade && npm install eslint@latest eslint-plugin-vue@latest",
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "@ckpack/vue-color": "^1.6.0",
+    "core-js": "^3.8.3",
+    "vue": "^3.2.13",
+    "vue-color": "^2.8.1",
+    "vue-router": "^4.5.0",
+    "vue3-color": "^0.0.1-alpha.9"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@vue/cli-plugin-babel": "~5.0.8",
+    "@vue/cli-plugin-eslint": "^5.0.8",
+    "@vue/cli-service": "^5.0.8",
+    "autoprefixer": "^10.4.20",
+    "cross-spawn": "^7.0.6",
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.32.0",
+    "eslint-webpack-plugin": "^3.2.0",
+    "html-webpack-plugin": "^5.6.3",
+    "postcss": "^8.5.3",
+    "vue-loader": "^17.4.2",
+    "webpack": "^5.98.0"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/vue3-essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}
