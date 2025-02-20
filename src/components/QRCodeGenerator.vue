@@ -1,102 +1,131 @@
 <template>
-    <div class="container">
-      <div class="card">
-        <h1 class="title">Gerador de QR Code</h1>
-        <div class="form-container">
-          <!-- Campo de entrada para link/texto -->
-          <input 
-            v-model="inputText" 
-            type="text" 
-            placeholder="Insira um link ou texto" 
-            class="input" 
-            @input="validateInput" 
-          />
-          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+  <div class="container">
+    <div class="card">
+      <h1 class="title">Gerador de QR Code</h1>
+      <div class="form-container">
+        <input 
+          v-model="inputText" 
+          type="text" 
+          placeholder="Insira um link ou texto" 
+          class="input" 
+          @input="validateInput" 
+        />
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
+        <input 
+          v-model="extraText"
+          type="text"
+          placeholder="Texto adicional (ex: CODEC-SOLUÇÕES, nosso site)"
+          class="input"
+        />
+        <label class="escolhacor">Escolha a cor do QR Code:</label>
+        <div class="color-picker">
           
-          <!-- Selecionador de cor avançado -->
-          <div class="color-picker">
-            <label class="label">Escolha a cor do QR Code:</label>
-            <div>
-              <ColorPicker v-model="qrColor" format="hex" />
-            </div>
-          </div>
-          
-          <!-- Botão para gerar o QR Code -->
-          <button 
-            @click="generateQRCode" 
-            class="generate-button" 
-            :disabled="!isInputValid"
-          >
-            Gerar QR Code
-          </button>
-          
-          <!-- Exibição do QR Code com animação -->
-          <div v-if="qrCodeUrl" class="qr-container">
-            <img :src="qrCodeUrl" alt="QR Code" class="qr-code" />
-          </div>
-          
-          <!-- Botão para copiar o QR Code -->
-          <button 
-            v-if="qrCodeUrl" 
-            @click="copyToClipboard" 
-            class="copy-button"
-          >
-            Copiar QR Code
-          </button>
+          <ColorPicker v-model="qrColor" format="hex" />
         </div>
+
+        <button 
+          @click="generateQRCode" 
+          class="generate-button" 
+          :disabled="!isInputValid"
+        >
+          Gerar QR Code
+        </button>
+
+        <div v-if="qrCodeUrl" class="qr-container">
+          <p v-if="extraText" class="extra-text">{{ extraText }}</p>
+          <img :src="qrCodeUrl" alt="QR Code" class="qr-code" />
+        </div>
+
+        <button 
+          v-if="qrCodeUrl" 
+          @click="downloadQRCode" 
+          class="copy-button"
+        >
+          Baixar QR Code com Texto
+        </button>
       </div>
     </div>
-  </template>
+  </div>
+</template>
+
 <script>
+import QRCode from 'qrcode';
 import { Chrome } from '@ckpack/vue-color';
 
 export default {
   components: {
-    ColorPicker: Chrome, // Use o componente Chrome do vue-color
+    ColorPicker: Chrome,
   },
   data() {
     return {
-      inputText: '', // Armazena o texto/link inserido pelo usuário
-      qrCodeUrl: '', // Armazena a URL do QR Code gerado
-      qrColor: '#000000', // Cor do QR Code
-      errorMessage: '', // Mensagem de erro para validação
-      isInputValid: false, // Estado de validação do input
+      inputText: '',
+      extraText: '',
+      qrCodeUrl: '',
+      qrColor: '#000000',
+      errorMessage: '',
+      isInputValid: false,
     };
   },
   methods: {
     validateInput() {
-      if (this.inputText.trim().length === 0) {
-        this.errorMessage = 'Por favor, insira um link ou texto.';
-        this.isInputValid = false;
-      } else {
-        this.errorMessage = '';
-        this.isInputValid = true;
+      this.isInputValid = this.inputText.trim().length > 0;
+      this.errorMessage = this.isInputValid ? '' : 'Por favor, insira um link ou texto.';
+    },
+    async generateQRCode() {
+      if (!this.isInputValid) {
+        alert('Por favor, insira um link ou texto válido.');
+        return;
+      }
+      
+      try {
+        const canvas = document.createElement('canvas');
+        
+        await QRCode.toCanvas(canvas, this.inputText, {
+          color: {
+            dark: this.qrColor.hex || '#000000',
+            light: '#ffffff',
+          },
+          width: 200,
+        });
+        
+        if (this.extraText) {
+          const newCanvas = document.createElement('canvas');
+          newCanvas.width = canvas.width;
+          newCanvas.height = canvas.height + 30;
+          const newCtx = newCanvas.getContext('2d');
+          
+          newCtx.fillStyle = '#ffffff';
+          newCtx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+          
+          newCtx.font = '16px Arial';
+          newCtx.fillStyle = this.qrColor.hex || '#000000';
+          newCtx.textAlign = 'center';
+          newCtx.fillText(this.extraText, newCanvas.width / 2, 20);
+          
+          newCtx.drawImage(canvas, 0, 30);
+          this.qrCodeUrl = newCanvas.toDataURL('image/png');
+        } else {
+          this.qrCodeUrl = canvas.toDataURL('image/png');
+        }
+      } catch (err) {
+        alert("Erro ao gerar o QR Code.");
+        console.error("Erro ao gerar QR Code:", err);
       }
     },
-    generateQRCode() {
-  if (!this.isInputValid) {
-    alert('Por favor, insira um link ou texto válido.');
-    return;
-  }
+    async downloadQRCode() {
+      if (!this.qrCodeUrl) return;
 
-  // Pegando a cor corretamente
-  const colorHex = this.qrColor?.hex?.replace('#', '') || '000000';
-
-  // Gera o QR Code usando a API do QRServer com a cor personalizada
-  const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(this.inputText)}&color=${colorHex}`;
-  
-  console.log('Gerando QR Code com URL:', apiUrl); // Para debug
-  this.qrCodeUrl = apiUrl;
-},
-
-    copyToClipboard() {
-      if (this.qrCodeUrl) {
-        navigator.clipboard.writeText(this.qrCodeUrl).then(() => {
-          alert('QR Code copiado para a área de transferência!');
-        }).catch((err) => {
-          alert('Erro ao copiar o QR Code.');
-          console.error('Erro ao copiar para a área de transferência:', err);
-        });
+      try {
+        const link = document.createElement('a');
+        link.href = this.qrCodeUrl;
+        link.download = `qrcode-com-texto-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        alert("Erro ao fazer download.");
+        console.error("Erro ao fazer download:", err);
       }
     },
   },
@@ -105,25 +134,30 @@ export default {
 
 <style scoped>
 * {
-  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
   font-family: Arial, Helvetica, sans-serif;
 }
 
-body {
-  background-color: #f0f2f5;
-  
+body, html {
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  margin: 0;
 }
-
+.title{
+  padding-bottom: 20px;
+}
+.escolhacor{
+  padding-bottom: 10px;
+}
 .container {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
+  min-height: 100vh;
+  padding: 1rem;
 }
 
 .card {
@@ -136,74 +170,36 @@ body {
   text-align: center;
 }
 
-.title {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #333;
-}
-
-.form-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.input, .color-input, .generate-button, .copy-button {
+.input, .generate-button, .copy-button {
   width: 100%;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid #ddd;
-}
-
-.input {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
   font-size: 1rem;
-  border-color: #bbb;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
 }
 
-.input:focus {
+.input:focus, .generate-button:focus, .copy-button:focus {
   outline: none;
-  border-color: #4c9aff;
-}
-
-.color-picker {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Centraliza o conteúdo na horizontal */
-  justify-content: center; /* Centraliza na vertical */
-  text-align: center;
-}
-
-.label {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.generate-button, .copy-button {
-  background-color: #4c9aff;
-  color: white;
-  font-weight: bold;
-  transition: background-color 0.3s ease;
-}
-
-.generate-button:hover, .copy-button:hover {
-  background-color: #3676e4;
+  border-color: #007bff;
 }
 
 .generate-button:disabled {
-  background-color: #d1d5db;
-  cursor: not-allowed;
+  background-color: #ccc;
 }
 
-.error-message {
-  color: #f44336;
-  font-size: 0.875rem;
+.extra-text {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #333;
 }
 
 .qr-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin-top: 1.5rem;
 }
 
@@ -214,23 +210,12 @@ body {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.copy-button {
-  background-color: #81c784;
+.color-picker {
+  margin-bottom: 1.5rem;
+  display: flex;
+  padding-top: 10px;
+  justify-content: center;
+  align-items: center;
 }
 
-.copy-button:hover {
-  background-color: #66bb6a;
-}
-
-@media (max-width: 500px) {
-  .card {
-    padding: 1.5rem;
-  }
-
-  .qr-code {
-    width: 150px;
-    height: 150px;
-  }
-}
 </style>
-  
